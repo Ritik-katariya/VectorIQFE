@@ -42,3 +42,17 @@ next-env.d.ts
 
 # clerk configuration (can include secrets)
 /.clerk/
+
+# prisma
+# Generated Prisma Client (default location in node_modules is already ignored)
+/lib/generated/prisma
+/.prisma/
+# Database files (SQLite - if applicable)
+*.db
+*.db-journal
+prisma/*.db
+prisma/*.db-journal
+# Prisma debug logs
+prisma/*.log
+# Note: prisma/migrations/ and prisma/schema.prisma should be committed to git
+

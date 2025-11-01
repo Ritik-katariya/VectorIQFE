@@ -1,0 +1,87 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // or sqlite/mysql
+  url      = env("DATABASE_URL")
+}
+
+
+model User {
+  id        String   @id @default(uuid())
+  clerkId   String    @unique
+  email     String   @unique
+  firstName      String?
+  lastName       String?
+  profileImage  String?
+  history   History?
+  datasources Datasource?
+  maxVectors Int      @default(10)
+  maxMessages   Int      @default(30)
+  roleAccess    RoleAccess     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+model History {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String   @unique
+  chats     Chat[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model Chat {
+  id        String   @id @default(uuid())
+  history   History  @relation(fields: [historyId], references: [id])
+  historyId String
+  messages  Message[]
+  createdAt DateTime @default(now())
+}
+model Message {
+  id        String   @id @default(uuid())
+  chat      Chat     @relation(fields: [chatId], references: [id])
+  chatId    String
+  role      Role
+  content   String
+  createdAt DateTime @default(now())
+}
+
+model Datasource {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String    @unique
+ dataItems DataItem[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model DataItem {
+  id          String     @id @default(uuid())
+  datasource  Datasource @relation(fields: [datasourceId], references: [id])
+  datasourceId String
+  name        String
+  dataType     DataType
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+enum DataType {
+  PDF
+  URL
+  TEXT
+  IMAGE
+}
+
+enum Role {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+enum RoleAccess {
+  USER
+  ADMIN
+}
+
