@@ -1,7 +1,5 @@
 "use client"
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-
 interface Message {
   id: string
   role: "user" | "ai"
@@ -17,27 +15,18 @@ export default function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === "user"
 
   return (
-    <div className={`flex gap-4 ${isUser ? "justify-end" : "justify-start"}`}>
-      {!isUser && (
-        <Avatar className="h-8 w-8 flex-shrink-0">
-          <AvatarFallback className="bg-primary text-primary-foreground">{message.model?.charAt(0)}</AvatarFallback>
-        </Avatar>
-      )}
-
+    <div
+      className={`flex w-full ${isUser ? "justify-end" : "justify-start"} px-2 sm:px-4`}
+    >
       <div
-        className={`max-w-md lg:max-w-2xl rounded-lg px-4 py-3 ${
-          isUser ? "bg-primary text-primary-foreground" : "bg-card text-card-foreground border border-border"
+        className={`max-w-[80%] sm:max-w-2xl rounded-xl px-4 py-2 text-sm leading-relaxed ${
+          isUser
+            ? "bg-gray-100 text-gray-900"
+            : "bg-transparent border border-border text-foreground"
         }`}
       >
-        {!isUser && message.model && <p className="text-xs opacity-70 mb-1">{message.model}</p>}
-        <p className="text-sm leading-relaxed">{message.content}</p>
+        <p className="whitespace-pre-wrap break-words">{message.content}</p>
       </div>
-
-      {isUser && (
-        <Avatar className="h-8 w-8 flex-shrink-0">
-          <AvatarFallback className="bg-accent text-accent-foreground">U</AvatarFallback>
-        </Avatar>
-      )}
     </div>
   )
 }

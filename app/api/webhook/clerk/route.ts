@@ -6,14 +6,14 @@ import { RoleAccess } from "@prisma/client";
 export async function POST(req: NextRequest) {
   try {
     // Verify the webhook signature
-    // verifyWebhook automatically uses CLERK_WEBHOOK_SECRET from environment variables
+    // verifyWebhook automatically uses CLERK_WEBHOOK_SIGNING_SECRET from environment variables
     const event = await verifyWebhook(req);
 
     const { id } = event.data;
     const eventType = event.type;
 
     if (eventType === "user.created") {
-      await prisma.user.create({
+      const user = await prisma.user.create({
         data: {
           clerkId: event.data.id,
           email: event.data.email_addresses[0].email_address,
@@ -22,6 +22,16 @@ export async function POST(req: NextRequest) {
           profileImage: event.data.image_url as string,
           roleAccess:
             (event.data.public_metadata?.role as RoleAccess) || RoleAccess.USER,
+        },
+      });
+      const datasourece = await prisma.datasource.create({
+        data: {
+          userId: user.id,
+        },
+      });
+      const history = await prisma.history.create({
+        data: {
+          userId: user.id,
         },
       });
     }

@@ -2,11 +2,14 @@
 
 import type React from "react"
 import { useState, useRef, useEffect } from "react"
-import { Send, Upload, Settings2, Mic } from "lucide-react"
+import { Send, Upload, Mic } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import ChatMessage from "./chat-message"
 import ParametersPopup from "./parameters-popup"
+import { FileUploadModal } from "./file-upload-modal"
+import Image from "next/image"
+import logo from "@/public/image/logo.png"
 
 interface Message {
   id: string
@@ -22,9 +25,16 @@ interface ChatAreaProps {
   isListening: boolean
 }
 
-export default function ChatArea({ messages, onSendMessage, onFileUpload, onMicClick, isListening }: ChatAreaProps) {
+export default function ChatArea({
+  messages,
+  onSendMessage,
+  onFileUpload,
+  onMicClick,
+  isListening,
+}: ChatAreaProps) {
   const [input, setInput] = useState("")
   const [showParameters, setShowParameters] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -42,6 +52,11 @@ export default function ChatArea({ messages, onSendMessage, onFileUpload, onMicC
     }
   }
 
+  const handleSubmit = (data: any) => {
+    console.log("Form submitted:", data)
+    setIsOpen(false)
+  }
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       onFileUpload(Array.from(e.target.files))
@@ -50,110 +65,113 @@ export default function ChatArea({ messages, onSendMessage, onFileUpload, onMicC
   }
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto px-6 lg:px-12 py-8 space-y-6">
-        {messages.length === 0 ? (
-          <div className="h-full flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 mx-auto mb-4 flex items-center justify-center">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-primary to-accent" />
+    <div className="flex h-full w-full justify-center items-center bg-background">
+      <div className="flex flex-col h-full w-full max-w-5xl bg-background md:rounded-xl">
+        {/* Chat Messages */}
+        <div className="flex-1 overflow-y-auto hide-scrollbar px-4 sm:px-6 md:px-10 py-6 space-y-6">
+          {messages.length === 0 ? (
+            <div className="h-full flex items-center justify-center px-4 text-center animate-fadeIn">
+              <div className="flex flex-col justify-center items-center w-full h-full">
+                <Image src={logo} alt="logo image"></Image>
+                <h2 className="text-2xl sm:text-3xl font-semibold text-foreground mb-2">
+                  Welcome to Your VectorIQ
+                </h2>
+                <p className="text-muted-foreground text-sm sm:text-lg">
+                  Upload documents and start your conversation
+                </p>
               </div>
-              <h2 className="text-3xl font-bold text-foreground mb-2">Welcome to Your RAG Assistant</h2>
-              <p className="text-muted-foreground text-lg">Upload documents and start your conversation</p>
             </div>
-          </div>
-        ) : (
-          <>
-            {messages.map((message) => (
-              <ChatMessage key={message.id} message={message} />
-            ))}
-            <div ref={messagesEndRef} />
-          </>
-        )}
-      </div>
+          ) : (
+            <>
+              {messages.map((message) => (
+                <ChatMessage key={message.id} message={message} />
+              ))}
+              <div ref={messagesEndRef} />
+            </>
+          )}
+        </div>
 
-      <div className="border-t border-border/50 bg-background/80 backdrop-blur-sm px-6 lg:px-12 py-6">
-        {/* Parameters Popup */}
-        {showParameters && <ParametersPopup onClose={() => setShowParameters(false)} />}
+        {/* Bottom Input Bar */}
+        <div className="border-t border-border/50 bg-background/95 backdrop-blur-xl px-3 sm:px-6 py-3 sm:py-4">
+          {showParameters && <ParametersPopup onClose={() => setShowParameters(false)} />}
 
-        {/* Input Row */}
-        <div className="flex gap-3 items-end">
-          {/* Left side: Upload & Settings */}
-          <div className="flex gap-2">
-            <input
-            title="upload"
-              type="file"
-              id="file-upload"
-              multiple
-              onChange={handleFileUpload}
-              className="hidden"
-              accept=".pdf,.txt,.docx,.doc,.pptx,.ppt,.xlsx,.xls"
-            />
+          <div className="flex items-end gap-2 sm:gap-3">
             <Button
-              variant="ghost"
+              variant="outline"
               size="icon"
-              onClick={() => document.getElementById("file-upload")?.click()}
+              onClick={() => setIsOpen(true)}
+              className="rounded-xl h-10 w-10 sm:h-12 sm:w-12 border-border/70 hover:bg-accent/10 transition-all"
               title="Upload Files"
-              className="rounded-lg hover:bg-accent/20 text-accent hover:text-accent"
             >
-              <Upload size={20} />
+              <Upload size={18} className="sm:size-5" />
             </Button>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowParameters(!showParameters)}
-              title="Custom Parameters"
-              className="rounded-lg hover:bg-accent/20 text-accent hover:text-accent"
-            >
-              <Settings2 size={20} />
-            </Button>
-          </div>
+            <FileUploadModal isOpen={isOpen} onClose={() => setIsOpen(false)} onSubmit={handleSubmit} />
 
-          {/* Center: Message Input */}
-          <div className="flex-1">
-            <div className="relative">
+            <div className="flex-1 relative">
               <Textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && e.ctrlKey) {
-                    handleSend()
-                  }
+                  if (e.key === "Enter" && e.ctrlKey) handleSend()
                 }}
                 placeholder="Ask me anything about your documents..."
-                className="min-h-12 max-h-32 resize-none bg-input border border-border/50 rounded-xl text-foreground placeholder:text-muted-foreground focus:border-accent/50 focus:ring-accent/20"
+                className="min-h-10 sm:min-h-12 max-h-36 resize-none bg-input border border-border/60 rounded-xl text-foreground placeholder:text-muted-foreground focus:border-accent/50 focus:ring-accent/20 pr-10 transition-all text-sm sm:text-base"
               />
+            </div>
+
+            <div className="flex gap-2 justify-center items-center">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onMicClick}
+                title="Voice Input"
+                className={`rounded-xl h-10 w-10 sm:h-12 sm:w-12 border-border/70 border shadow-md transition-all ${
+                  isListening ? "bg-accent/30 text-accent" : "hover:bg-accent/10"
+                }`}
+              >
+                <Mic size={18} className="sm:size-5" />
+              </Button>
+
+              <Button
+                onClick={handleSend}
+                disabled={!input.trim()}
+                size="icon"
+                className="rounded-xl h-10 w-10 sm:h-12 sm:w-12 bg-[#bab3b3] border shadow-md text-black transition-all"
+              >
+                <Send size={18} className="sm:size-5" />
+              </Button>
             </div>
           </div>
 
-          {/* Right side: Mic & Send */}
-          <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onMicClick}
-              title="Voice Input"
-              className={`rounded-lg ${
-                isListening ? "bg-accent/30 text-accent" : "hover:bg-accent/20 text-accent hover:text-accent"
-              }`}
-            >
-              <Mic size={20} />
-            </Button>
-
-            <Button
-              onClick={handleSend}
-              disabled={!input.trim()}
-              size="icon"
-              className="rounded-lg bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-foreground shadow-lg shadow-accent/20"
-            >
-              <Send size={20} />
-            </Button>
-          </div>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-2 ml-12 sm:ml-14">
+            Shift + Enter for new line • Ctrl + Enter to send
+          </p>
         </div>
 
-        <p className="text-xs text-muted-foreground mt-2 ml-12">Shift + Enter for new line, Ctrl + Enter to send</p>
+        {/* Hide Scrollbar Styling */}
+        <style jsx global>{`
+          .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+          }
+          .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+          }
+          .animate-fadeIn {
+            animation: fadeIn 0.6s ease-in-out;
+          }
+          @keyframes fadeIn {
+            from {
+              opacity: 0;
+              transform: translateY(10px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+        `}</style>
       </div>
     </div>
   )
