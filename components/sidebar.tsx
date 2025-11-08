@@ -46,8 +46,8 @@ export default function Sidebar({ isOpen, onToggle, files, onFileToggle, onFileD
 
       {/* Files Section */}
       {isOpen && (
-        <div className="flex-1 overflow-hidden flex flex-col">
-          <div className="p-4 border-b border-sidebar-border">
+        <div className="flex-1 overflow-hidden flex flex-col ">
+          <div className="p-4 border-b border-sidebar-border max-h-1/2 overflow-auto">
             <h3 className="text-sm font-semibold text-sidebar-foreground mb-3">Documents</h3>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {files.length === 0 ? (
@@ -61,7 +61,7 @@ export default function Sidebar({ isOpen, onToggle, files, onFileToggle, onFileD
           </div>
 
           {/* Chat History Section */}
-          <div className="flex-1 overflow-hidden border-t border-sidebar-border p-4 flex flex-col">
+          <div className="flex-1 overflow-hidden border-t border-sidebar-border p-4 flex flex-col max-h-1/2 overflow-auto">
             <h3 className="text-sm font-semibold text-sidebar-foreground mb-3">History</h3>
             <div className="space-y-2 overflow-y-auto flex-1">
               {chatHistory.length === 0 ? (

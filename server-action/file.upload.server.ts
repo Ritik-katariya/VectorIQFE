@@ -21,6 +21,9 @@ export async function ingestData(
   if (!currentUser) {
     throw new Error("User not found");
   }
+  if (currentUser.maxVectors <= 0) {
+    throw new Error("You have reached the maximum number of vectors");
+  }
 
   // Ensure datasource exists for the user
   const datasource = currentUser.datasources
@@ -69,13 +72,24 @@ export async function ingestData(
       ChunksIds: vectorData.ids,
     },
   });
+  await prisma.user.update({
+    where: { id: currentUser.id },
+    data: {
+      maxVectors: {
+        decrement: 1,
+      },
+    },
+  });
   return data;
 }
 
 export async function getDataSource(userId: string) {
+  if (!userId) {
+    return null;
+  }
   const currentUser = await prisma.user.findUnique({
     where: { clerkId: userId },
-    include: { datasources: true },
+    include: { datasources: { include: { dataItems: true } } },
   });
   if (!currentUser) {
     throw new Error("User not found");
@@ -84,4 +98,18 @@ export async function getDataSource(userId: string) {
     ? currentUser.datasources
     : await prisma.datasource.create({ data: { userId: currentUser.id } });
   return datasource;
+}
+
+export async function listDataItems(userId: string) {
+  if (!userId) {
+    return [];
+  }
+  const datasource = await getDataSource(userId);
+  if (!datasource) return [];
+  const items = await prisma.dataItem.findMany({
+    where: { datasourceId: datasource.id },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, name: true, dataType: true, ChunksIds: true },
+  });
+  return items;
 }

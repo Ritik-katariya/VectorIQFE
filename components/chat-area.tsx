@@ -1,28 +1,35 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState, useRef, useEffect } from "react"
-import { Send, Upload, Mic } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import ChatMessage from "./chat-message"
-import ParametersPopup from "./parameters-popup"
-import { FileUploadModal } from "./file-upload-modal"
-import Image from "next/image"
-import logo from "@/public/image/logo.png"
-
+import type React from "react";
+import { useState, useRef, useEffect } from "react";
+import { Send, Upload, Mic } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import ChatMessage from "./chat-message";
+import { FileUploadModal } from "./file-upload-modal";
+import Image from "next/image";
+import logo from "@/public/image/logo.png";
+import useDataItemStore from "@/store/data-itmes";
+import { useQueryStream } from "@/hooks/useQueryStream";
+import { getFromLocalStorage } from "@/lib/setinlocal";
+import { useAuth } from "@clerk/nextjs";
+import { saveMessage } from "@/server-action/chat.server";
 interface Message {
-  id: string
-  role: "user" | "ai"
-  content: string
+  id: string;
+  role: "user" | "ai";
+  content: string;
 }
 
 interface ChatAreaProps {
-  messages: Message[]
-  onSendMessage: (content: string) => void
-  onFileUpload: (files: File[]) => void
-  onMicClick: () => void
-  isListening: boolean
+  messages: Message[];
+  onSendMessage: (
+    content: string,
+    role?: "user" | "ai",
+    messageId?: string
+  ) => void;
+  onFileUpload: (files: File[]) => void;
+  onMicClick: () => void;
+  isListening: boolean;
 }
 
 export default function ChatArea({
@@ -32,37 +39,124 @@ export default function ChatArea({
   onMicClick,
   isListening,
 }: ChatAreaProps) {
-  const [input, setInput] = useState("")
-  const [showParameters, setShowParameters] = useState(false)
-  const [isOpen, setIsOpen] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [input, setInput] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { text, isStreaming, error, run } = useQueryStream();
+  const { dataItems } = useDataItemStore();
+  const chatId = getFromLocalStorage<string>("chatId");
+  const { userId } = useAuth();
+  const [currentAssistantMessageId, setCurrentAssistantMessageId] = useState<
+    string | null
+  >(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+    scrollToBottom();
+  }, [messages, text]);
 
-  const handleSend = () => {
-    if (input.trim()) {
-      onSendMessage(input)
-      setInput("")
+  const handleSend = async () => {
+    if (!input.trim() || !userId || isStreaming) return;
+
+    const userMessage = input.trim();
+    const queryInput = input.trim();
+    setInput(""); // Clear input immediately for better UX
+
+    // Clear any previous assistant message ID
+    setCurrentAssistantMessageId(null);
+
+    // Add user message immediately
+    onSendMessage(userMessage, "user");
+
+    // Save user message to DB
+    let updatedChatId = chatId;
+    try {
+      const result = await saveMessage({
+        query: userMessage,
+        userId: userId,
+        chatId: chatId || "",
+        role: "USER",
+      });
+
+      // Update chatId if it was created
+      if (result.data?.chatId) {
+        updatedChatId = result.data.chatId;
+        localStorage.setItem("chatId", JSON.stringify(result.data.chatId));
+      }
+    } catch (err) {
+      console.error("Failed to save user message:", err);
     }
-  }
+
+    // Create assistant message placeholder
+    const assistantMessageId = Math.random().toString(36).substr(2, 9);
+    setCurrentAssistantMessageId(assistantMessageId);
+    onSendMessage("", "ai", assistantMessageId); // Create empty AI message
+
+    // Start streaming
+    // Flatten all ChunksIds from selected data items into a single array
+    const allChunkIds = dataItems.flatMap((item) => item.ChunksIds || []);
+    run({
+      query: queryInput,
+      ids: allChunkIds,
+      namespace: `user-${userId}`,
+      temperature: 0.5,
+      top_k: 10,
+      base_collection: "knowledge",
+    });
+  };
+
+  // Update assistant message as it streams
+  useEffect(() => {
+    if (text !== undefined && currentAssistantMessageId) {
+      onSendMessage(text, "ai", currentAssistantMessageId);
+    }
+  }, [text, currentAssistantMessageId, onSendMessage]);
+
+  // Handle errors
+  useEffect(() => {
+    if (error && currentAssistantMessageId) {
+      onSendMessage(
+        `Error: ${error}. Please try again.`,
+        "ai",
+        currentAssistantMessageId
+      );
+      setCurrentAssistantMessageId(null);
+    }
+  }, [error, currentAssistantMessageId, onSendMessage]);
+
+  // Save assistant message when streaming completes
+  useEffect(() => {
+    if (!isStreaming && text && currentAssistantMessageId && userId) {
+      const finalText = text.trim();
+      if (finalText) {
+        const currentChatId = getFromLocalStorage<string>("chatId");
+        saveMessage({
+          query: finalText,
+          userId: userId,
+          chatId: currentChatId || "",
+          role: "ASSISTANT",
+        }).catch((err) => {
+          console.error("Failed to save assistant message:", err);
+        });
+      }
+      setCurrentAssistantMessageId(null);
+    }
+  }, [isStreaming, text, currentAssistantMessageId, userId]);
 
   const handleSubmit = (data: any) => {
-    console.log("Form submitted:", data)
-    setIsOpen(false)
-  }
+    console.log("Form submitted:", data);
+    setIsOpen(false);
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      onFileUpload(Array.from(e.target.files))
-      e.target.value = ""
+      onFileUpload(Array.from(e.target.files));
+      e.target.value = "";
     }
-  }
+  };
 
   return (
     <div className="flex h-full w-full justify-center items-center bg-background">
@@ -84,7 +178,15 @@ export default function ChatArea({
           ) : (
             <>
               {messages.map((message) => (
-                <ChatMessage key={message.id} message={message} />
+                <ChatMessage
+                  key={message.id}
+                  message={message}
+                  isStreaming={
+                    isStreaming &&
+                    message.role === "ai" &&
+                    message.id === currentAssistantMessageId
+                  }
+                />
               ))}
               <div ref={messagesEndRef} />
             </>
@@ -93,7 +195,8 @@ export default function ChatArea({
 
         {/* Bottom Input Bar */}
         <div className="border-t border-border/50 bg-background/95 backdrop-blur-xl px-3 sm:px-6 py-3 sm:py-4">
-          {showParameters && <ParametersPopup onClose={() => setShowParameters(false)} />}
+          {/* Selected documents chips */}
+          <SelectedChips />
 
           <div className="flex items-end gap-2 sm:gap-3">
             <Button
@@ -106,14 +209,18 @@ export default function ChatArea({
               <Upload size={18} className="sm:size-5" />
             </Button>
 
-            <FileUploadModal isOpen={isOpen} onClose={() => setIsOpen(false)} onSubmit={handleSubmit} />
+            <FileUploadModal
+              isOpen={isOpen}
+              onClose={() => setIsOpen(false)}
+              onSubmit={handleSubmit}
+            />
 
             <div className="flex-1 relative">
               <Textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && e.ctrlKey) handleSend()
+                  if (e.key === "Enter" && e.ctrlKey) handleSend();
                 }}
                 placeholder="Ask me anything about your documents..."
                 className="min-h-10 sm:min-h-12 max-h-36 resize-none bg-input border border-border/60 rounded-xl text-foreground placeholder:text-muted-foreground focus:border-accent/50 focus:ring-accent/20 pr-10 transition-all text-sm sm:text-base"
@@ -127,7 +234,9 @@ export default function ChatArea({
                 onClick={onMicClick}
                 title="Voice Input"
                 className={`rounded-xl h-10 w-10 sm:h-12 sm:w-12 border-border/70 border shadow-md transition-all ${
-                  isListening ? "bg-accent/30 text-accent" : "hover:bg-accent/10"
+                  isListening
+                    ? "bg-accent/30 text-accent"
+                    : "hover:bg-accent/10"
                 }`}
               >
                 <Mic size={18} className="sm:size-5" />
@@ -135,9 +244,9 @@ export default function ChatArea({
 
               <Button
                 onClick={handleSend}
-                disabled={!input.trim()}
+                disabled={!input.trim() || isStreaming}
                 size="icon"
-                className="rounded-xl h-10 w-10 sm:h-12 sm:w-12 bg-[#bab3b3] border shadow-md text-black transition-all"
+                className="rounded-xl h-10 w-10 sm:h-12 sm:w-12 bg-[#bab3b3] border shadow-md text-black transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send size={18} className="sm:size-5" />
               </Button>
@@ -174,5 +283,23 @@ export default function ChatArea({
         `}</style>
       </div>
     </div>
-  )
+  );
+}
+
+function SelectedChips() {
+  const { dataItems } = useDataItemStore();
+  if (!dataItems || dataItems.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5 mb-2">
+      {dataItems.map((item) => (
+        <span
+          key={item.id}
+          className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-accent-foreground border border-accent/30"
+          title={item.name}
+        >
+          {item.name.slice(0, 7)}
+        </span>
+      ))}
+    </div>
+  );
 }

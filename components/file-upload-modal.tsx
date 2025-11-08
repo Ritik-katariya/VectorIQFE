@@ -141,7 +141,7 @@ export function FileUploadModal({
         chunk_size: formData.chunk_size,
         chunk_overlap: formData.chunk_overlap,
         store_mode: formData.store_mode,
-        session_id: `user-${userId}`,
+        session_id: `${userId}`,
         namespace: `user-${userId}`,
       } as UploadDataItem;
 
@@ -154,7 +154,7 @@ export function FileUploadModal({
         payload = { ...base, url: (formData.url ?? "").trim() };
       }
 
-      console.log("Submitting form data:", payload, userId, dataType);
+      
       await ingestData(payload, userId, dataType);
       showToast.success("Upload successful", {
         duration: 4000,
@@ -167,7 +167,7 @@ export function FileUploadModal({
       onClose();
     } catch (error) {
       console.error(error);
-      showToast.error("Upload failed. Please try again.", {
+      showToast.error("Upload failed. Please try again."+error, {
         duration: 4000,
         progress: true,
         position: "top-right",

@@ -21,3 +21,22 @@ export type ResponseDataItem = {
     sample:null;
     ids: string[];
 }
+ 
+  
+  
+export type saveMessageType = {
+    userId: string;
+    role: "USER" | "ASSISTANT"| "SYSTEM";
+    query: string;
+    chatId?:string;
+
+}
+
+export type queryMessagesType = {
+    query: string;
+    ids: string[];
+    temperature: number;
+    top_k: number;
+    namespace: string;
+    base_collection?: string;
+}
