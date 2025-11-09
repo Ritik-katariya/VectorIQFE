@@ -78,35 +78,34 @@ export async function getChats(
     };
   }
 
-  return prisma.$transaction(async (tx) => {
-    const user = await tx.user.findUnique({
-      where: { clerkId: userId },
-      include: {
-        history: {
-          include: {
-            chats: {
-              orderBy: { createdAt: "desc" },
-            },
+  // Read-only operation - no transaction needed
+  const user = await prisma.user.findUnique({
+    where: { clerkId: userId },
+    include: {
+      history: {
+        include: {
+          chats: {
+            orderBy: { createdAt: "desc" },
           },
         },
       },
-    });
+    },
+  });
 
-    if (!user || !user.history) {
-      return {
-        message: "No chats found",
-        data: [],
-        success: true,
-      };
-    }
-
-    const chatIds = user.history.chats.map((chat) => chat.id);
+  if (!user || !user.history) {
     return {
-      message: "Chats retrieved successfully",
-      data: chatIds,
+      message: "No chats found",
+      data: [],
       success: true,
     };
-  });
+  }
+
+  const chatIds = user.history.chats.map((chat) => chat.id);
+  return {
+    message: "Chats retrieved successfully",
+    data: chatIds,
+    success: true,
+  };
 }
 
 export async function getChatMessages(chatId: string): Promise<response> {
@@ -118,19 +117,18 @@ export async function getChatMessages(chatId: string): Promise<response> {
     };
   }
 
-  return prisma.$transaction(async (tx) => {
-    const messages = await tx.message.findMany({
-      where: { chatId },
-      orderBy: { createdAt: "asc" },
-    });
-
-    return {
-      message:
-        messages.length > 0
-          ? "Messages retrieved successfully"
-          : "No messages found",
-      data: messages,
-      success: true,
-    };
+  // Read-only operation - no transaction needed
+  const messages = await prisma.message.findMany({
+    where: { chatId },
+    orderBy: { createdAt: "asc" },
   });
+
+  return {
+    message:
+      messages.length > 0
+        ? "Messages retrieved successfully"
+        : "No messages found",
+    data: messages,
+    success: true,
+  };
 }

@@ -1,5 +1,5 @@
 "use client";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FileItem from "./file-item";
 interface File {
@@ -22,6 +22,7 @@ interface SidebarProps {
   chatHistory: ChatHistoryItem[];
   onChatSelect: (chatId: string) => void;
   currentChatId: string | null;
+  onNewChat: () => void;
 }
 
 export default function Sidebar({
@@ -33,6 +34,7 @@ export default function Sidebar({
   chatHistory,
   onChatSelect,
   currentChatId,
+  onNewChat,
 }: SidebarProps) {
   return (
     <div
@@ -40,18 +42,33 @@ export default function Sidebar({
         isOpen ? "w-72" : "w-16"
       } bg-sidebar border-r border-sidebar-border flex flex-col h-screen`}
     >
-      {/* Toggle Button */}
+      {/* Header with New Chat Button */}
       <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
-        {isOpen && (
-          <h2 className="text-lg font-semibold text-sidebar-foreground">
-            RAG Chat
-          </h2>
+        {isOpen ? (
+          <Button
+            onClick={onNewChat}
+            variant="outline"
+            className="flex items-center gap-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border-sidebar-border"
+          >
+            <Plus size={18} />
+            New Chat
+          </Button>
+        ) : (
+          <Button
+            onClick={onNewChat}
+            variant="ghost"
+            size="icon"
+            className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            title="New Chat"
+          >
+            <Plus size={20} />
+          </Button>
         )}
         <Button
           variant="ghost"
           size="icon"
           onClick={onToggle}
-          className="ml-auto text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
         >
           {isOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
         </Button>
@@ -64,7 +81,7 @@ export default function Sidebar({
             <h3 className="text-sm font-semibold text-sidebar-foreground mb-3">
               Documents
             </h3>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
+            <div className="space-y-2 max-h-96 overflow-hidden">
               {files.length === 0 ? (
                 <p className="text-xs text-sidebar-foreground/50">
                   No files uploaded
@@ -103,7 +120,11 @@ export default function Sidebar({
                   const isActive = currentChatId === chatId;
                   return (
                     <button
-                      key={typeof chatId === "string" || typeof chatId === "number" ? chatId : (chatId?.id ?? String(chatId))}
+                      key={
+                        typeof chatId === "string" || typeof chatId === "number"
+                          ? chatId
+                          : chatId?.id ?? String(chatId)
+                      }
                       onClick={() => onChatSelect(String(chatId))}
                       className={`w-full text-left p-2 rounded text-sm transition-colors truncate ${
                         isActive

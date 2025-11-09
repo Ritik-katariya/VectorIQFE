@@ -170,6 +170,13 @@ export default function HomeClient({
     fetchChatHistory();
   }, [userId]);
 
+  // Handle new chat - clear messages and localStorage
+  const handleNewChat = () => {
+    setMessages([]);
+    setCurrentChatId(null);
+    setInLocalStorage("chatId", "");
+  };
+
   // Handle chat selection from sidebar
   const handleChatSelect = async (chatId: string) => {
     try {
@@ -210,6 +217,7 @@ export default function HomeClient({
         chatHistory={chatHistory}
         onChatSelect={handleChatSelect}
         currentChatId={currentChatId}
+        onNewChat={handleNewChat}
       />
 
       <div className="flex-1 flex flex-col relative">
