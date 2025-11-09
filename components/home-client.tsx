@@ -207,7 +207,7 @@ export default function HomeClient({
   };
 
   return (
-    <div className="flex h-screen bg-background text-foreground overflow-hidden">
+    <div className="flex h-[calc(100vh-4rem)] bg-background text-foreground overflow-hidden">
       <Sidebar
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
@@ -220,7 +220,7 @@ export default function HomeClient({
         onNewChat={handleNewChat}
       />
 
-      <div className="flex-1 flex flex-col relative">
+      <div className="flex-1 flex flex-col relative h-full">
         {isListening && (
           <VoiceVisualizer onClose={() => setIsListening(false)} />
         )}

@@ -148,8 +148,8 @@ export default function ChatArea({
   }, [isStreaming, text, currentAssistantMessageId, userId]);
 
   return (
-    <div className="flex h-full w-full justify-center items-center bg-background">
-      <div className="flex flex-col h-full w-full max-w-5xl bg-background md:rounded-xl">
+    <div className="flex h-full w-full justify-center items-center bg-background overflow-hidden">
+      <div className="flex flex-col h-full w-full max-w-5xl bg-background md:rounded-xl overflow-hidden">
         {/* Chat Messages */}
         <div className="flex-1 overflow-y-auto hide-scrollbar px-4 sm:px-6 md:px-10 py-6 space-y-6">
           {messages.length === 0 ? (

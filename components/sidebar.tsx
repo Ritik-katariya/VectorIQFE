@@ -40,7 +40,7 @@ export default function Sidebar({
     <div
       className={`transition-all duration-300 ${
         isOpen ? "w-72" : "w-16"
-      } bg-sidebar border-r border-sidebar-border flex flex-col h-screen`}
+      } bg-sidebar border-r border-sidebar-border flex flex-col h-full`}
     >
       {/* Header with New Chat Button */}
       <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
