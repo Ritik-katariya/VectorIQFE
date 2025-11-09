@@ -1,32 +1,32 @@
-"use client"
+"use client";
 
-import { X } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { useEffect, useState } from "react"
+import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface VoiceVisualizerProps {
-  onClose: () => void
+  onClose: () => void;
 }
 
 export default function VoiceVisualizer({ onClose }: VoiceVisualizerProps) {
-  const [isAnimating, setIsAnimating] = useState(true)
-
-  useEffect(() => {
-    setIsAnimating(true)
-  }, [])
-
   // Generate random bar heights for visualization
-  const bars = Array.from({ length: 12 }, () => Math.random() * 100)
+  const bars = Array.from({ length: 12 }, () => Math.random() * 100);
 
   return (
     <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 rounded-xl m-6">
       <div className="bg-card border border-border rounded-2xl p-8 shadow-xl max-w-sm w-full">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-lg font-semibold text-foreground">Listening...</h3>
+            <h3 className="text-lg font-semibold text-foreground">
+              Listening...
+            </h3>
             <p className="text-sm text-muted-foreground">Speak your message</p>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground"
+          >
             <X size={20} />
           </Button>
         </div>
@@ -36,7 +36,7 @@ export default function VoiceVisualizer({ onClose }: VoiceVisualizerProps) {
           {bars.map((height, index) => (
             <div
               key={index}
-              className={`bg-gradient-to-t from-primary to-accent rounded-full ${isAnimating ? "animate-pulse" : ""}`}
+              className="bg-linear-to-t from-primary to-accent rounded-full animate-pulse"
               style={{
                 width: "6px",
                 height: `${height}%`,
@@ -53,5 +53,5 @@ export default function VoiceVisualizer({ onClose }: VoiceVisualizerProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }

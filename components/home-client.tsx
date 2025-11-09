@@ -5,6 +5,9 @@ import Sidebar from "@/components/sidebar";
 import ChatArea from "@/components/chat-area";
 import VoiceVisualizer from "@/components/voice-visualizer";
 import useDataItemStore from "@/store/data-itmes";
+import { getChats, getChatMessages } from "@/server-action/chat.server";
+import { useAuth } from "@clerk/nextjs";
+import { getFromLocalStorage, setInLocalStorage } from "@/lib/setinlocal";
 
 type InitialItem = {
   id: string;
@@ -18,6 +21,7 @@ export default function HomeClient({
 }: {
   initialItems: InitialItem[];
 }) {
+  const { userId } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   // Create a map of initialItems for quick lookup of ChunksIds
   const initialItemsMap = useMemo(
@@ -34,12 +38,11 @@ export default function HomeClient({
       selected: true,
     }))
   );
-  const [chatHistory, setChatHistory] = useState<
-    Array<{ id: string; name: string; timestamp: string }>
-  >([]);
+  const [chatHistory, setChatHistory] = useState<Array<{ id: string }>>([]);
   const [messages, setMessages] = useState<
     Array<{ id: string; role: "user" | "ai"; content: string }>
   >([]);
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [isListening, setIsListening] = useState(false);
   const { setDataItems } = useDataItemStore();
 
@@ -54,16 +57,6 @@ export default function HomeClient({
       }));
     setDataItems(selected);
   }, [files, setDataItems, initialItemsMap]);
-
-  const handleFileUpload = (newFiles: File[]) => {
-    const uploadedFiles = newFiles.map((file) => ({
-      id: Math.random().toString(36).substr(2, 9),
-      name: file.name,
-      type: file.type,
-      selected: true,
-    }));
-    setFiles((prev) => [...prev, ...uploadedFiles]);
-  };
 
   const handleToggleFile = (fileId: string) => {
     setFiles((prev) =>
@@ -120,6 +113,92 @@ export default function HomeClient({
     }
   };
 
+  // Check localStorage for chatId on mount and load messages
+  useEffect(() => {
+    if (!userId) return;
+
+    const loadChatMessages = async (chatId: string) => {
+      try {
+        const res = await getChatMessages(chatId);
+        if (res.success && Array.isArray(res.data)) {
+          // Convert database messages to component format
+          const dbMessages = res.data as Array<{
+            id: string;
+            role: "USER" | "ASSISTANT" | "SYSTEM";
+            content: string;
+          }>;
+
+          const formattedMessages = dbMessages
+            .filter((msg) => msg.role !== "SYSTEM") // Filter out system messages
+            .map((msg) => ({
+              id: msg.id,
+              role: msg.role === "USER" ? ("user" as const) : ("ai" as const),
+              content: msg.content,
+            }));
+
+          setMessages(formattedMessages);
+          setCurrentChatId(chatId);
+          setInLocalStorage("chatId", chatId);
+        }
+      } catch (error) {
+        console.error("Failed to load chat messages:", error);
+      }
+    };
+
+    const storedChatId = getFromLocalStorage<string>("chatId");
+    if (storedChatId) {
+      loadChatMessages(storedChatId);
+    }
+  }, [userId]);
+
+  // Fetch chat history on mount
+  useEffect(() => {
+    async function fetchChatHistory() {
+      if (!userId) return;
+
+      const res = await getChats(userId);
+      if (res.success && Array.isArray(res.data)) {
+        // getChats returns an array of chat IDs (strings)
+        const chatIds = res.data as string[];
+        // Convert to array of objects with id property
+        const chats = chatIds.map((id) => ({ id }));
+        setChatHistory(chats);
+      }
+      console.log("Fetching chat history for userId:", userId, res);
+    }
+
+    fetchChatHistory();
+  }, [userId]);
+
+  // Handle chat selection from sidebar
+  const handleChatSelect = async (chatId: string) => {
+    try {
+      const res = await getChatMessages(chatId);
+      if (res.success && Array.isArray(res.data)) {
+        // Convert database messages to component format
+        const dbMessages = res.data as Array<{
+          id: string;
+          role: "USER" | "ASSISTANT" | "SYSTEM";
+          content: string;
+        }>;
+
+        const formattedMessages = dbMessages
+          .filter((msg) => msg.role !== "SYSTEM") // Filter out system messages
+          .map((msg) => ({
+            id: msg.id,
+            role: msg.role === "USER" ? ("user" as const) : ("ai" as const),
+            content: msg.content,
+          }));
+
+        setMessages(formattedMessages);
+        setCurrentChatId(chatId);
+        setInLocalStorage("chatId", chatId);
+      }
+    } catch (error) {
+      console.error("Failed to load chat messages:", error);
+    }
+  };
+
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
       <Sidebar
@@ -129,6 +208,8 @@ export default function HomeClient({
         onFileToggle={handleToggleFile}
         onFileDelete={handleDeleteFile}
         chatHistory={chatHistory}
+        onChatSelect={handleChatSelect}
+        currentChatId={currentChatId}
       />
 
       <div className="flex-1 flex flex-col relative">
@@ -139,9 +220,21 @@ export default function HomeClient({
         <ChatArea
           messages={messages}
           onSendMessage={handleSendMessage}
-          onFileUpload={handleFileUpload}
           onMicClick={() => setIsListening(!isListening)}
           isListening={isListening}
+          onChatIdChange={(chatId) => {
+            setCurrentChatId(chatId);
+            // Refresh chat history when a new chat is created
+            if (userId) {
+              getChats(userId).then((res) => {
+                if (res.success && Array.isArray(res.data)) {
+                  const chatIds = res.data as string[];
+                  const chats = chatIds.map((id) => ({ id }));
+                  setChatHistory(chats);
+                }
+              });
+            }
+          }}
         />
       </div>
     </div>

@@ -4,7 +4,6 @@ interface Message {
   id: string;
   role: "user" | "ai";
   content: string;
-  model?: string;
 }
 
 interface ChatMessageProps {
@@ -31,7 +30,7 @@ export default function ChatMessage({
             : "bg-transparent border border-border text-foreground"
         }`}
       >
-        <p className="whitespace-pre-wrap break-words">
+        <p className="whitespace-pre-wrap wrap-break-word">
           {message.content}
           {isStreaming && (
             <span className="inline-block w-2 h-4 ml-1 bg-foreground animate-pulse" />

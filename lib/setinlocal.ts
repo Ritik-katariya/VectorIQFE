@@ -1,5 +1,3 @@
-
-
 export function setInLocalStorage<T>(key: string, value: T): void {
   if (typeof window !== "undefined") {
     localStorage.setItem(key, JSON.stringify(value));

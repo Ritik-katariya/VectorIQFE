@@ -1,9 +1,8 @@
 "use client";
 
-import type React from "react";
-
 import { useState } from "react";
-import { FileUp, Settings2 } from "lucide-react";
+import type React from "react";
+import { Settings2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -26,18 +25,12 @@ import { useAuth } from "@clerk/nextjs";
 import { DataType } from "@prisma/client";
 import { showToast } from "nextjs-toast-notify";
 
-
 interface FileUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: FormData) => void;
 }
 
-export function FileUploadModal({
-  isOpen,
-  onClose,
-  onSubmit,
-}: FileUploadModalProps) {
+export function FileUploadModal({ isOpen, onClose }: FileUploadModalProps) {
   const [formData, setFormData] = useState<UploadDataItem>(() => {
     return {
       url: "",
@@ -154,25 +147,24 @@ export function FileUploadModal({
         payload = { ...base, url: (formData.url ?? "").trim() };
       }
 
-      
       await ingestData(payload, userId, dataType);
       showToast.success("Upload successful", {
         duration: 4000,
         progress: true,
         position: "top-right",
         transition: "bounceIn",
-        icon: '',
+        icon: "",
         sound: true,
       });
       onClose();
     } catch (error) {
       console.error(error);
-      showToast.error("Upload failed. Please try again."+error, {
+      showToast.error("Upload failed. Please try again." + error, {
         duration: 4000,
         progress: true,
         position: "top-right",
         transition: "bounceIn",
-        icon: '',
+        icon: "",
         sound: true,
       });
     } finally {

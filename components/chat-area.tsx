@@ -1,6 +1,5 @@
 "use client";
 
-import type React from "react";
 import { useState, useRef, useEffect } from "react";
 import { Send, Upload, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,17 +26,17 @@ interface ChatAreaProps {
     role?: "user" | "ai",
     messageId?: string
   ) => void;
-  onFileUpload: (files: File[]) => void;
   onMicClick: () => void;
   isListening: boolean;
+  onChatIdChange?: (chatId: string) => void;
 }
 
 export default function ChatArea({
   messages,
   onSendMessage,
-  onFileUpload,
   onMicClick,
   isListening,
+  onChatIdChange,
 }: ChatAreaProps) {
   const [input, setInput] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -85,6 +84,8 @@ export default function ChatArea({
       if (result.data?.chatId) {
         updatedChatId = result.data.chatId;
         localStorage.setItem("chatId", JSON.stringify(result.data.chatId));
+        // Notify parent component of chatId change
+        onChatIdChange?.(result.data.chatId);
       }
     } catch (err) {
       console.error("Failed to save user message:", err);
@@ -146,18 +147,6 @@ export default function ChatArea({
     }
   }, [isStreaming, text, currentAssistantMessageId, userId]);
 
-  const handleSubmit = (data: any) => {
-    console.log("Form submitted:", data);
-    setIsOpen(false);
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      onFileUpload(Array.from(e.target.files));
-      e.target.value = "";
-    }
-  };
-
   return (
     <div className="flex h-full w-full justify-center items-center bg-background">
       <div className="flex flex-col h-full w-full max-w-5xl bg-background md:rounded-xl">
@@ -209,11 +198,7 @@ export default function ChatArea({
               <Upload size={18} className="sm:size-5" />
             </Button>
 
-            <FileUploadModal
-              isOpen={isOpen}
-              onClose={() => setIsOpen(false)}
-              onSubmit={handleSubmit}
-            />
+            <FileUploadModal isOpen={isOpen} onClose={() => setIsOpen(false)} />
 
             <div className="flex-1 relative">
               <Textarea
